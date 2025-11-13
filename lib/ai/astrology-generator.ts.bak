@@ -1,0 +1,128 @@
+import OpenAI from 'openai';
+
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+});
+
+export async function generateAstrologySummary(data: {
+  sunSign: string;
+  risingSign: string;
+  moonSign: string;
+  element: string;
+  gender: string;
+  birthDate: string;
+}): Promise<string> {
+  const prompt = `Generate a concise astrology reading summary (100-150 words) for:
+- Sun Sign: ${data.sunSign}
+- Rising Sign: ${data.risingSign}
+- Moon Sign: ${data.moonSign}
+- Element: ${data.element}
+- Gender: ${data.gender}
+- Born: ${data.birthDate}
+
+Create an engaging, mystical summary that highlights their unique cosmic alignment and hints at deeper insights available in the full reading. End with an enticing call to unlock more.`;
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-mini', // 便宜又好用
+    messages: [
+      {
+        role: 'system',
+        content: 'You are a professional astrologer with deep knowledge of Western astrology. Write engaging, personalized readings that feel mystical yet insightful.'
+      },
+      {
+        role: 'user',
+        content: prompt
+      }
+    ],
+    temperature: 0.8,
+    max_tokens: 200,
+  });
+
+  return response.choices[0].message.content || 'Your cosmic alignment is unique and powerful...';
+}
+
+export async function generateFullAstrology(data: {
+  sunSign: string;
+  risingSign: string;
+  moonSign: string;
+  element: string;
+  gender: string;
+  birthDate: string;
+  birthTime: string;
+}): Promise<{
+  personality: string;
+  career: string;
+  relationships: string;
+  health: string;
+  wealth: string;
+  recommendations: string[];
+}> {
+  const sections = [
+    {
+      key: 'personality',
+      prompt: `Write a detailed personality analysis (200 words) for someone with Sun in ${data.sunSign}, Rising ${data.risingSign}, Moon in ${data.moonSign}. Focus on their core traits, strengths, and challenges.`
+    },
+    {
+      key: 'career',
+      prompt: `Write career guidance (150 words) for ${data.sunSign} Sun with ${data.risingSign} Rising. What professions suit them? What are their natural talents?`
+    },
+    {
+      key: 'relationships',
+      prompt: `Write relationship insights (150 words) for Moon in ${data.moonSign}, ${data.element} element. How do they love? What do they need in partnerships?`
+    },
+    {
+      key: 'health',
+      prompt: `Write health and wellness advice (100 words) for ${data.element} element ${data.sunSign}. What should they focus on?`
+    },
+    {
+      key: 'wealth',
+      prompt: `Write financial guidance (100 words) for ${data.sunSign} with ${data.risingSign} Rising. How can they attract abundance?`
+    }
+  ];
+
+  const results: any = {};
+
+  for (const section of sections) {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a professional astrologer. Write detailed, personalized insights.'
+        },
+        {
+          role: 'user',
+          content: section.prompt
+        }
+      ],
+      temperature: 0.8,
+      max_tokens: 300,
+    });
+
+    results[section.key] = response.choices[0].message.content || '';
+  }
+
+  // Generate recommendations
+  const recoResponse = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      {
+        role: 'user',
+        content: `List 5 specific recommendations for ${data.sunSign} (${data.element}). Include colors, activities, and life advice. Format as bullet points.`
+      }
+    ],
+    temperature: 0.7,
+    max_tokens: 150,
+  });
+
+  const recommendations = recoResponse.choices[0].message.content
+    ?.split('\n')
+    .filter(line => line.trim().length > 0)
+    .map(line => line.replace(/^[-•*]\s*/, ''))
+    .slice(0, 5) || [];
+
+  return {
+    ...results,
+    recommendations
+  };
+}

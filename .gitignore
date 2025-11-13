@@ -1,0 +1,27 @@
+﻿# dependencies
+node_modules
+
+# next.js
+.next
+out
+
+# production
+build
+
+# important!：
+.env*.local
+.env.local
+.env
+.env.production
+
+# vercel
+.vercel
+
+# debug
+npm-debug.log*
+*.log
+
+# misc
+.DS_Store
+
+project-snapshot.txt
