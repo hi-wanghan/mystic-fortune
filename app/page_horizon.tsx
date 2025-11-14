@@ -303,6 +303,7 @@ function BirthFormCard() {
         body: JSON.stringify(form)
       });
       const data = await res.json();
+      //check again
       if (data.id) router.push(`/success?reading_id=${data.id}`);
     } catch (err) {
       alert('Something went wrong. Please try again.');
