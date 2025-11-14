@@ -7,7 +7,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2024-06-20' // 匹配 Stripe 库的类型要求
 });
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
-const PRICE_USD = parseFloat(process.env.NEXT_PUBLIC_PRICE_USD || '9.99');
+const PRICE_USD = parseFloat(process.env.NEXT_PUBLIC_PRICE_USD || '2.99');
 
 export async function POST(req: NextRequest) {
   try {
