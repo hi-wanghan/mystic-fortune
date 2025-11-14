@@ -51,11 +51,7 @@ export default function Home() {
 
           {/* Bottom Section: Pricing & Features */}
           <div className="bg-white/5 backdrop-blur-xl rounded-xl border border-purple-500/30 overflow-hidden">
-<div className="p-6 lg:p-8 pb-0">
-  <div className="max-w-4xl mx-auto bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl p-3 text-center mb-6">
-    <p className="text-white font-bold">🎁 Limited Time Offer: 60% OFF Today Only</p>
-  </div>
-</div>
+
             
             <div className="p-6 lg:p-8">
               {/* Trust Badge */}
