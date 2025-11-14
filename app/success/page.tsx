@@ -1,27 +1,15 @@
-'use client';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+// app/success/page.tsx
+import { Suspense } from 'react';
+import SuccessContent from './SuccessContent';
 
+// Server Component (no 'use client' needed)
 export default function SuccessPage() {
-  const router = useRouter();
-  const params = useSearchParams();
-  const rid = params.get('reading_id');
-  
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (rid) {
-        router.push(`/result/${rid}`);
-      }
-    }, 2000);
-    return () => clearTimeout(timer);
-  }, [rid, router]);
-  
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50">
-      <div className="bg-white rounded-2xl p-12 text-center shadow-xl">
-        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-purple-600 mx-auto mb-4"></div>
-        <h1 className="text-2xl font-bold text-gray-800">Processing...</h1>
-      </div>
+    <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto' }}>
+      {/* Suspense boundary: Shows fallback during client-side loading */}
+      <Suspense fallback={<div>Loading your success page...</div>}>
+        <SuccessContent />
+      </Suspense>
     </div>
   );
 }

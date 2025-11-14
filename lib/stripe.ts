@@ -1,6 +1,6 @@
 ﻿import Stripe from 'stripe';
 import { loadStripe } from '@stripe/stripe-js';
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2025-09-30.clover' });
+export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 let stripePromise: any;
 export const getStripe = () => {
   if (!stripePromise) stripePromise = loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
