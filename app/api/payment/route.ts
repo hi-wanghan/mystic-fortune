@@ -2,9 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import Stripe from 'stripe';
 import { createClient } from '@supabase/supabase-js';
 
-// 关键修改：将 apiVersion 改为 "2025-10-29.clover"
+// 关键修改：将 apiVersion 改为 "2024-06-20"
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { 
-  apiVersion: '2025-10-29.clover' // 匹配 Stripe 库的类型要求
+  apiVersion: '2024-06-20' // 匹配 Stripe 库的类型要求
 });
 const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
 const PRICE_USD = parseFloat(process.env.NEXT_PUBLIC_PRICE_USD || '9.99');
