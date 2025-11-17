@@ -1,18 +1,18 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 
-// 不需要 Stripe SDK，直接用接口返回的 url 跳转（更简单可靠）
 export default function PaymentButton({ readingId }: { readingId: string }) {
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
   const PRICE_USD = process.env.NEXT_PUBLIC_PRICE_USD || '2.99';
+  // 隐藏的 a 标签引用，用于触发跳转
+  const paymentLinkRef = useRef<HTMLAnchorElement>(null);
 
   const handlePay = async () => {
     setIsLoading(true);
+    setError('');
     try {
-      console.log('发起支付，readingId：', readingId);
-      
-      // 调用后端接口获取支付链接
       const res = await fetch('/api/payment', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -20,33 +20,41 @@ export default function PaymentButton({ readingId }: { readingId: string }) {
       });
 
       const data = await res.json();
-      console.log('接口返回数据：', data); // 打印返回的 url，验证是否拿到
+      if (!res.ok) throw new Error(data.error || 'Failed to get payment link');
 
-      if (!res.ok) {
-        throw new Error(data.error || 'Failed to create payment session');
-      }
-
-      // ✅ redirect after receiving the url
-      if (data.url) {
-        window.location.href = data.url;
+      // 拿到支付链接后，通过 a 标签触发跳转
+      if (data.url && paymentLinkRef.current) {
+        paymentLinkRef.current.href = data.url;
+        paymentLinkRef.current.click(); // 模拟点击 a 标签
       } else {
-        throw new Error('Payment URL not found');
+        throw new Error('Payment link is invalid');
       }
-    } catch (error: any) {
-      console.error('支付失败：', error.message);
-      alert(`Payment failed: ${error.message}`);
+    } catch (err: any) {
+      setError(err.message);
+      console.error('Payment error:', err);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <button
-      onClick={handlePay}
-      disabled={isLoading}
-      className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-bold text-lg hover:shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed"
-    >
-      {isLoading ? 'Processing...' : `Unlock Full Reading ($${PRICE_USD})`}
-    </button>
+    <div className="w-full">
+      {/* 隐藏的 a 标签，用于触发跳转（CSP 允许） */}
+      <a ref={paymentLinkRef} target="_top" className="hidden" />
+
+      {/* 支付按钮 */}
+      <button
+        onClick={handlePay}
+        disabled={isLoading}
+        className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-bold text-lg hover:shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+      >
+        {isLoading ? 'Processing...' : `Unlock Full Reading ($${PRICE_USD})`}
+      </button>
+
+      {/* 错误提示 */}
+      {error && (
+        <p className="mt-2 text-red-400 text-sm text-center">{error}</p>
+      )}
+    </div>
   );
 }
