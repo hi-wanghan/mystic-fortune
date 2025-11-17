@@ -12,6 +12,12 @@ export default function PaymentButton({ readingId }: { readingId: string }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ readingId })
       });
+
+    if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || 'Failed to create payment session');
+    }
+
       const { url } = await res.json();
       if (url) window.location.href = url;
     } catch (error) {
