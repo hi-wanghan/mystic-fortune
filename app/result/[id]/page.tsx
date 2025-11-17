@@ -105,7 +105,7 @@ export default function ResultPage() {
             <div className="flex flex-wrap gap-2">
               {Object.entries(reading.elements || {}).map(([element, count]) => (
                 <span key={element} className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm">
-                  {element}: {count}
+                  {element}: {String(count)}
                 </span>
               ))}
             </div>

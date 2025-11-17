@@ -81,7 +81,11 @@ export default function SuccessPage() {
         </p>
         {/* 原生表单提交，重试支付 */}
         <form action="/api/payment" method="POST" className="max-w-md mx-auto">
-          <input type="hidden" name="readingId" value={readingId} />
+          <input 
+  type="hidden" 
+  name="readingId" 
+  value={readingId || ''} // 当 readingId 为 null 时，赋值为空字符串
+/>
           <button
             type="submit"
             className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-bold text-lg hover:shadow-lg transition-all"
