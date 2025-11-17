@@ -1,10 +1,10 @@
-// /app/success/SuccessContent.tsx
+// /app/success/SuccessPageClient.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-// 原生 Supabase 初始化
+// 原生 Supabase 初始化（避免 CSP 触发）
 const initSupabase = () => {
   const { createClient } = require('@supabase/supabase-js');
   return createClient(
@@ -13,7 +13,21 @@ const initSupabase = () => {
   );
 };
 
-export default function SuccessContent() {
+// 加载状态组件（Suspense fallback）
+const Loading = () => (
+  <main className="min-h-screen bg-[#0a0118] flex flex-col items-center justify-center">
+    <div className="inline-block">
+      <svg className="animate-spin h-12 w-12 text-purple-500" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+    </div>
+    <p className="text-gray-300 mt-6 text-lg">Verifying your payment...</p>
+  </main>
+);
+
+// 支付验证逻辑组件
+const PaymentVerification = () => {
   const searchParams = useSearchParams();
   const readingId = searchParams.get('reading_id');
   const [loading, setLoading] = useState(true);
@@ -25,7 +39,7 @@ export default function SuccessContent() {
       return;
     }
 
-    const checkPayment = async () => {
+    const checkPaymentStatus = async () => {
       try {
         const supabase = initSupabase();
         const { data, error } = await supabase
@@ -34,22 +48,20 @@ export default function SuccessContent() {
           .eq('id', readingId)
           .single();
 
-        if (error) throw error;
-
-        // 已支付 → 原生跳转完整报告
+        if (error) throw new Error('Failed to verify payment status');
         if (data.is_paid) {
           window.location.href = `/result/${readingId}`;
         } else {
           setLoading(false);
         }
       } catch (err: any) {
-        setError('Payment verification failed. Please try again.');
+        setError(err.message || 'Payment verification failed. Please try again.');
         setLoading(false);
-        console.error(err);
+        console.error('Payment check error:', err);
       }
     };
 
-    checkPayment();
+    checkPaymentStatus();
   }, [readingId]);
 
   if (loading) {
@@ -68,22 +80,23 @@ export default function SuccessContent() {
 
   return (
     <main className="min-h-screen bg-[#0a0118] py-12">
-      <div className="max-w-3xl mx-auto px-4 text-center">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
         {error && (
           <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-6 mb-8">
             <p className="text-red-400 text-lg">{error}</p>
           </div>
         )}
+
         <h1 className="text-3xl font-bold text-white mb-4">Payment Pending</h1>
-        <p className="text-gray-300 text-lg mb-8">
-          We haven't received your payment yet. Click below to complete your purchase.
+        <p className="text-gray-300 text-lg mb-8 max-w-md mx-auto">
+          We haven't received your payment yet. Complete the payment to unlock your full Bazi report.
         </p>
-        {/* 原生表单提交，重试支付（修复 readingId null 问题） */}
+
         <form action="/api/payment" method="POST" className="max-w-md mx-auto">
-          <input 
-            type="hidden" 
-            name="readingId" 
-            value={readingId || ''} // 兜底空字符串，解决类型错误
+          <input
+            type="hidden"
+            name="readingId"
+            value={readingId || ''}
           />
           <button
             type="submit"
@@ -92,13 +105,23 @@ export default function SuccessContent() {
             Retry Payment
           </button>
         </form>
+
         <a
           href="/"
-          className="inline-block mt-6 text-gray-400 hover:text-white transition text-sm"
+          className="inline-block mt-6 text-gray-400 hover:text-white transition-colors text-sm"
         >
           Return to Home Page
         </a>
       </div>
     </main>
+  );
+};
+
+// 客户端根组件（Suspense 包裹）
+export default function SuccessPageClient() {
+  return (
+    <Suspense fallback={<Loading />}>
+      <PaymentVerification />
+    </Suspense>
   );
 }
