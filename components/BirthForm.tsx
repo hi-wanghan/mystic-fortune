@@ -1,10 +1,8 @@
 'use client';
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import LoadingSpinner from './LoadingSpinner';
 
 export default function BirthForm() {
-  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
     date: '',
@@ -12,20 +10,53 @@ export default function BirthForm() {
     timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
     gender: 'male' as 'male' | 'female'
   });
+  const [error, setError] = useState('');
+
+  // ✅ 年份限制配置
+  const MIN_YEAR = 1939;
+  const MAX_YEAR = 2020;
+  // 计算 min/max 日期（格式：YYYY-MM-DD）
+  const minDate = `${MIN_YEAR}-01-01`;
+  const maxDate = `${MAX_YEAR}-12-31`;
+  // 默认最大日期取 2020-12-31 和当前日期的较小值（避免选未来日期）
+  const finalMaxDate = new Date(maxDate) < new Date() 
+    ? maxDate 
+    : new Date().toISOString().split('T')[0];
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError('');
+
     try {
+      // ✅ 额外校验年份（防止用户手动修改输入框绕过限制）
+      const selectedYear = new Date(form.date).getFullYear();
+      if (selectedYear < MIN_YEAR || selectedYear > MAX_YEAR) {
+        throw new Error(`Birth year must be between ${MIN_YEAR} and ${MAX_YEAR}`);
+      }
+
       const res = await fetch('/api/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(form)
       });
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.message || `Server error: ${res.status}`);
+      }
+
       const data = await res.json();
-      if (data.id) router.push(`/success?reading_id=${data.id}`);
-    } catch (err) {
-      alert('Something went wrong. Please try again.');
+      console.log('API 返回数据：', data);
+
+      if (data.id && typeof data.id === 'string') {
+        window.location.href = `/result/${data.id}`;
+      } else {
+        throw new Error('API 未返回有效的报告 ID');
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to generate your preview. Please try again.');
+      console.error('提交失败：', err);
     } finally {
       setLoading(false);
     }
@@ -44,25 +75,36 @@ export default function BirthForm() {
               Get Your Free Preview
             </h3>
             <p className="text-gray-400 text-sm">
-              See your BaZi chart + basic insights instantly
+              See your BaZi chart + basic insights instantly (1939-2020)
             </p>
           </div>
 
           <form onSubmit={submit} className="space-y-4">
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-400 text-sm">
+                {error}
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Birth Date
+                Birth Date (1939-2020)
               </label>
               <input
                 type="date"
                 required
-                max={new Date().toISOString().split('T')[0]}
+                min={minDate} // ✅ 限制最小日期：1939-01-01
+                max={finalMaxDate} // ✅ 限制最大日期：2020-12-31（或当前日期）
                 value={form.date}
                 onChange={e => setForm({ ...form, date: e.target.value })}
                 className="w-full px-4 py-3 bg-gray-900/50 border border-purple-500/30 rounded-lg 
                          text-gray-100 focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 
                          focus:outline-none transition-all"
+                placeholder="Select birth date"
               />
+              <p className="mt-1 text-xs text-gray-500">
+                Valid years: {MIN_YEAR} - {MAX_YEAR}
+              </p>
             </div>
 
             <div>
