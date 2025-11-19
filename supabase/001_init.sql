@@ -4,7 +4,7 @@ CREATE TABLE readings (
   birth_time TIME NOT NULL,
   timezone TEXT NOT NULL,
   gender TEXT NOT NULL,
-  bazi_data JSONB NOT NULL,        -- 存储计算好的占星数据（星座等）
+  astro_data JSONB NOT NULL,        -- 存储计算好的占星数据（星座等）
   elements JSONB NOT NULL,          -- 存储元素分布
   summary TEXT NOT NULL,            -- AI 生成的免费摘要
   full_analysis JSONB,              -- AI 生成的完整解读（付费后才有）

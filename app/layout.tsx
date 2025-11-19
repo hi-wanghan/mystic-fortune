@@ -1,7 +1,12 @@
-import './globals.css'
-import { SpeedInsights } from '@vercel/speed-insights/next';
+import './globals.css';
 
-export const metadata = { title: 'Fortune', description: 'Discover your destiny' }
+// 1. 删除 SpeedInsights 导入语句
+// import { SpeedInsights } from '@vercel/speed-insights/next';
+
+export const metadata = { 
+  title: 'Fortune', 
+  description: 'Discover your destiny' 
+};
 
 export default function RootLayout({
   children,
@@ -11,11 +16,12 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <title>Next.js</title>
+        {/* 2. 删除重复的 <title> 标签（metadata 会自动生成标题，无需手动写） */}
       </head>
       <body>
         {children}
-        <SpeedInsights />
+        {/* 3. 删除 SpeedInsights 组件引用 */}
+        {/* <SpeedInsights /> */}
       </body>
     </html>
   );

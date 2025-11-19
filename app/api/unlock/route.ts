@@ -55,10 +55,10 @@ export async function POST(req: NextRequest) {
 
     // 生成完整解读（使用静态模板）
     const fullAnalysis = generateFullAstrologyStatic({
-      sunSign: reading.bazi_data.year.heavenlyStem,
-      risingSign: reading.bazi_data.month.heavenlyStem,
-      moonSign: reading.bazi_data.day.heavenlyStem,
-      element: reading.bazi_data.year.earthlyBranch,
+      sunSign: reading.astro_data.year.heavenlyStem,
+      risingSign: reading.astro_data.month.heavenlyStem,
+      moonSign: reading.astro_data.day.heavenlyStem,
+      element: reading.astro_data.year.earthlyBranch,
       gender: reading.gender,
       birthDate: reading.birth_date,
       birthTime: reading.birth_time,

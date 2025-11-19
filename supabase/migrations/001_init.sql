@@ -4,7 +4,7 @@ CREATE TABLE readings (
   birth_time TIME NOT NULL,
   timezone TEXT NOT NULL,
   gender TEXT NOT NULL,
-  bazi_data JSONB NOT NULL,
+  astro_data JSONB NOT NULL,
   elements JSONB NOT NULL,
   summary TEXT NOT NULL,
   full_analysis JSONB,
