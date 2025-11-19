@@ -1,6 +1,8 @@
 import './globals.css'
 import { SpeedInsights } from '@vercel/speed-insights/next';
- 
+
+export const metadata = { title: 'Fortune', description: 'Discover your destiny' }
+
 export default function RootLayout({
   children,
 }: {
@@ -18,5 +20,3 @@ export default function RootLayout({
     </html>
   );
 }
-
-export const metadata = { title: 'Fortune', description: 'Discover your destiny' }
