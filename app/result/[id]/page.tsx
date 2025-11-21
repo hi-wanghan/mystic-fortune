@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import { getSupabase } from '@/lib/supabase-client';
 
-const supabase = getSupabase();
-
 export default function ResultPage() {
-  const readingId = window.location.pathname.split('/').pop() || '';
+  const params = useParams();
+  const readingId = params.id as string; // 使用 Next.js 路由参数获取 ID，更可靠
   const [reading, setReading] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -70,6 +70,14 @@ export default function ResultPage() {
     );
   }
 
+  // 从 astro_data 提取四柱信息（替代原 bazi 字段）
+  const pillars = [
+    { ...reading.astro_data?.year, name: 'Year' },
+    { ...reading.astro_data?.month, name: 'Month' },
+    { ...reading.astro_data?.day, name: 'Day' },
+    { ...reading.astro_data?.hour, name: 'Hour' },
+  ];
+
   return (
     <main className="min-h-screen bg-[#0a0118] py-8">
       <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -82,15 +90,17 @@ export default function ResultPage() {
           </p>
         </div>
 
-        {/* 八字命盘预览 */}
+        {/* 八字命盘预览（使用 astro_data 替代 bazi） */}
         <div className="bg-white/5 border border-white/10 rounded-xl p-6 lg:p-8 mb-8">
           <h3 className="text-xl font-semibold text-white mb-4">Your Bazi Chart</h3>
           <div className="grid grid-cols-4 gap-4 mb-6">
-            {reading.bazi?.map((pillar: any, idx: number) => (
+            {pillars.map((pillar, idx) => (
               <div key={idx} className="bg-white/10 rounded-lg p-4 text-center">
-                <p className="text-gray-400 text-sm">{['Year', 'Month', 'Day', 'Hour'][idx]}</p>
-                <p className="text-2xl font-bold text-white mt-1">{pillar.stem}{pillar.branch}</p>
-                <p className="text-purple-400 text-sm mt-2">{pillar.zodiac}</p>
+                <p className="text-gray-400 text-sm">{pillar.name}</p>
+                <p className="text-2xl font-bold text-white mt-1">
+                  {pillar.heavenlyStem}{pillar.earthlyBranch}
+                </p>
+                <p className="text-purple-400 text-sm mt-2">{pillar.zodiac || 'N/A'}</p>
               </div>
             ))}
           </div>
@@ -98,9 +108,12 @@ export default function ResultPage() {
             <h4 className="text-white font-medium mb-2">Five Elements Distribution</h4>
             <div className="flex flex-wrap gap-2">
               {Object.entries(reading.elements || {}).map(([element, count]) => (
-                <span key={element} className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm">
-                  {element}: {String(count)}
-                </span>
+                // 过滤 Total 字段，只显示四大元素
+                element !== 'Total' && (
+                  <span key={element} className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm">
+                    {element}: {String(count)}
+                  </span>
+                )
               ))}
             </div>
           </div>
@@ -112,15 +125,22 @@ export default function ResultPage() {
             <div className="bg-white/5 rounded-xl p-6 lg:p-8">
               <h3 className="text-xl font-semibold text-white mb-4">Personality Analysis</h3>
               <p className="text-gray-300 leading-relaxed mb-4">
-                {reading.full_report?.personality || 
-                 "Based on your Bazi chart, you possess a unique blend of confidence and empathy. Your Day Stem reveals a natural leader with strong decision-making skills, while your Month Branch adds emotional depth that allows you to connect with others authentically..."}
+                {reading.full_report?.personality || reading.summary || 
+                 "Based on your Bazi chart, you possess a unique blend of confidence and empathy. Your Day Stem reveals a natural leader with strong decision-making skills..."}
               </p>
               <p className="text-gray-300 leading-relaxed">
-                You thrive in environments that balance structure and creativity. Your Five Elements indicate a need to nurture your {reading.elements?.wood ? 'Wood' : 'Water'} element to enhance growth and harmony in your life...
+                You thrive in environments that balance structure and creativity. Your Five Elements indicate a need to nurture your {reading.elements?.Wood ? 'Wood' : 'Water'} element to enhance growth and harmony in your life...
               </p>
             </div>
 
-            {/* 其他报告章节... */}
+            {/* 其他报告章节占位 */}
+            <div className="bg-white/5 rounded-xl p-6 lg:p-8">
+              <h3 className="text-xl font-semibold text-white mb-4">Career Insights</h3>
+              <p className="text-gray-300 leading-relaxed">
+                Your astrological profile suggests a natural inclination towards {reading.astro_data?.month.heavenlyStem}-related fields. Your elemental balance indicates strength in teamwork and strategic planning...
+              </p>
+            </div>
+
             <div className="text-center">
               <button
                 onClick={() => window.print()}
