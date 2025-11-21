@@ -16,7 +16,8 @@
     "openai": "^6.2.0",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "stripe": "^19.3.1"
+    "stripe": "^19.3.1",
+    "urlencoded-body-parser": "^3.0.0"
   },
   "devDependencies": {
     "@types/node": "^20",

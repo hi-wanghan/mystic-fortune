@@ -1,34 +1,33 @@
-'use client';
+import React from 'react';
 
-export default function PaymentButton({ readingId }: { readingId: string }) {
-  const PRICE_USD = process.env.NEXT_PUBLIC_PRICE_USD || '2.99';
+interface PaymentButtonProps {
+  readingId: string;
+}
 
-  // 原生表单提交，无 JS 动态跳转，CSP 完全允许
+export default function PaymentButton({ readingId }: PaymentButtonProps) {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const form = e.target as HTMLFormElement;
-    form.submit(); // 原生表单提交，无 CSP 限制
+    form.submit(); // 原生表单提交，避免CSP问题
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      action="/api/payment"
+    <form 
+      onSubmit={handleSubmit} 
+      action="/api/payment" 
       method="POST"
-      className="w-full"
+      className="mt-6"
     >
-      {/* 传递 readingId（隐藏字段） */}
-      <input
-        type="hidden"
-        name="readingId"
-        value={readingId}
+      <input 
+        type="hidden" 
+        name="readingId" 
+        value={readingId} 
       />
-      {/* 支付按钮 */}
-      <button
+      <button 
         type="submit"
-        className="w-full px-6 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-bold text-lg hover:shadow-lg transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+        className="w-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white py-4 rounded-lg font-semibold hover:opacity-90 transition-opacity"
       >
-        Unlock Full Reading ($${PRICE_USD})
+        Unlock Full Reading
       </button>
     </form>
   );

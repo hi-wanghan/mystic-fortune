@@ -1,15 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { getSupabase } from '@/lib/supabase-client';
 
-// 原生 Supabase 初始化
-const initSupabase = () => {
-  const { createClient } = require('@supabase/supabase-js');
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-};
+const supabase = getSupabase();
 
 export default function ResultPage() {
   const readingId = window.location.pathname.split('/').pop() || '';
@@ -26,7 +20,7 @@ export default function ResultPage() {
 
     const fetchReading = async () => {
       try {
-        const supabase = initSupabase();
+        const supabase = getSupabase();
         const { data, error } = await supabase
           .from('readings')
           .select('*')

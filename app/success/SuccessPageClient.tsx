@@ -1,19 +1,16 @@
 // /app/success/SuccessPageClient.tsx
 'use client';
 
-import { Suspense, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { getSupabase } from '@/lib/supabase-client';
 
-// 原生 Supabase 初始化（避免 CSP 触发）
-const initSupabase = () => {
-  const { createClient } = require('@supabase/supabase-js');
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-};
+// 定义查询结果的类型接口
+interface ReadingPaymentStatus {
+  is_paid: boolean;
+}
 
-// 加载状态组件（Suspense fallback）
+// 复用的加载状态组件
 const Loading = () => (
   <main className="min-h-screen bg-[#0a0118] flex flex-col items-center justify-center">
     <div className="inline-block">
@@ -41,21 +38,29 @@ const PaymentVerification = () => {
 
     const checkPaymentStatus = async () => {
       try {
-        const supabase = initSupabase();
+        const supabase = getSupabase();
         const { data, error } = await supabase
           .from('readings')
           .select('is_paid')
           .eq('id', readingId)
-          .single();
+          .single<ReadingPaymentStatus>();
 
-        if (error) throw new Error('Failed to verify payment status');
+        if (error) {
+          // 区分 Supabase 错误类型，提供更具体的提示
+          if (error.code === 'PGRST116') {
+            throw new Error('This reading does not exist. Please generate a new one.');
+          } else {
+            throw new Error('Failed to verify payment status. Please try again.');
+          }
+        }
+
         if (data.is_paid) {
           window.location.href = `/result/${readingId}`;
         } else {
           setLoading(false);
         }
       } catch (err: any) {
-        setError(err.message || 'Payment verification failed. Please try again.');
+        setError(err.message || 'An unexpected error occurred.');
         setLoading(false);
         console.error('Payment check error:', err);
       }
@@ -65,17 +70,7 @@ const PaymentVerification = () => {
   }, [readingId]);
 
   if (loading) {
-    return (
-      <main className="min-h-screen bg-[#0a0118] flex flex-col items-center justify-center">
-        <div className="inline-block">
-          <svg className="animate-spin h-12 w-12 text-purple-500" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-        </div>
-        <p className="text-gray-300 mt-6 text-lg">Verifying your payment...</p>
-      </main>
-    );
+    return <Loading />; // 复用加载组件
   }
 
   return (
@@ -117,11 +112,7 @@ const PaymentVerification = () => {
   );
 };
 
-// 客户端根组件（Suspense 包裹）
+// 移除不必要的 Suspense 包裹
 export default function SuccessPageClient() {
-  return (
-    <Suspense fallback={<Loading />}>
-      <PaymentVerification />
-    </Suspense>
-  );
+  return <PaymentVerification />;
 }

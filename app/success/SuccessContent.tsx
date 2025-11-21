@@ -3,15 +3,12 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { getSupabase } from '@/lib/supabase-client';
 
-// 原生 Supabase 初始化
-const initSupabase = () => {
-  const { createClient } = require('@supabase/supabase-js');
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  );
-};
+// 定义查询结果的类型接口
+interface ReadingPaymentStatus {
+  is_paid: boolean;
+}
 
 export default function SuccessContent() {
   const searchParams = useSearchParams();
@@ -27,17 +24,18 @@ export default function SuccessContent() {
 
     const checkPayment = async () => {
       try {
-        const supabase = initSupabase();
+        const supabase = getSupabase();
+        // 在查询时指定返回类型为 ReadingPaymentStatus
         const { data, error } = await supabase
           .from('readings')
           .select('is_paid')
           .eq('id', readingId)
-          .single();
+          .single<ReadingPaymentStatus>(); // 关键：指定类型
 
         if (error) throw error;
 
         // 已支付 → 原生跳转完整报告
-        if (data.is_paid) {
+        if (data.is_paid) { // 现在 TypeScript 能识别 is_paid 了
           window.location.href = `/result/${readingId}`;
         } else {
           setLoading(false);
@@ -52,6 +50,7 @@ export default function SuccessContent() {
     checkPayment();
   }, [readingId]);
 
+  // 剩余代码保持不变...
   if (loading) {
     return (
       <main className="min-h-screen bg-[#0a0118] flex flex-col items-center justify-center">
@@ -78,12 +77,11 @@ export default function SuccessContent() {
         <p className="text-gray-300 text-lg mb-8">
           We haven't received your payment yet. Click below to complete your purchase.
         </p>
-        {/* 原生表单提交，重试支付（修复 readingId null 问题） */}
         <form action="/api/payment" method="POST" className="max-w-md mx-auto">
           <input 
             type="hidden" 
             name="readingId" 
-            value={readingId || ''} // 兜底空字符串，解决类型错误
+            value={readingId || ''}
           />
           <button
             type="submit"
