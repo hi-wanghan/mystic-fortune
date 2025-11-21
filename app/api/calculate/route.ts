@@ -2,47 +2,112 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-// 环境变量校验
+// 环境变量校验（启动时检查）
 if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
-  console.error('❌ Supabase 环境变量未配置！请检查 .env.local');
+  throw new Error('❌ 缺少 Supabase 环境变量，请检查 .env.local 配置');
 }
 
-// 初始化 Supabase
+// 初始化 Supabase 客户端
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-// 辅助函数：生成占星数据（astro_data）
-function generateDefaultAstroData(birthDate: string, gender: string) {
+// 类型定义 - 增强类型安全
+type ZodiacSign = 'Capricorn' | 'Aquarius' | 'Pisces' | 'Aries' | 'Taurus' | 'Gemini' | 
+                 'Cancer' | 'Leo' | 'Virgo' | 'Libra' | 'Scorpio' | 'Sagittarius';
+
+type Element = 'Air' | 'Fire' | 'Water' | 'Earth';
+
+type Planet = 'Sun' | 'Moon' | 'Mercury' | 'Venus' | 'Mars' | 'Jupiter' | 
+             'Saturn' | 'Uranus' | 'Neptune' | 'Pluto';
+
+interface AstroData {
+  year: {
+    zodiac: ZodiacSign;
+    heavenlyStem: ZodiacSign;
+    earthlyBranch: Element;
+  };
+  month: {
+    heavenlyStem: ZodiacSign;
+    earthlyBranch: Element;
+  };
+  day: {
+    heavenlyStem: ZodiacSign;
+    earthlyBranch: Element;
+  };
+  hour: {
+    heavenlyStem: Planet;
+    earthlyBranch: 'Planetary';
+  };
+}
+
+interface Elements {
+  Air: number;
+  Fire: number;
+  Water: number;
+  Earth: number;
+  Total: number;
+}
+
+interface RequestBody {
+  date: string;
+  time: string;
+  timezone?: string;
+  gender: string;
+}
+
+// 常量定义 - 集中管理配置
+const ZODIAC_MAP: { sign: ZodiacSign; element: Element }[] = [
+  { sign: 'Capricorn', element: 'Earth' },
+  { sign: 'Aquarius', element: 'Air' },
+  { sign: 'Pisces', element: 'Water' },
+  { sign: 'Aries', element: 'Fire' },
+  { sign: 'Taurus', element: 'Earth' },
+  { sign: 'Gemini', element: 'Air' },
+  { sign: 'Cancer', element: 'Water' },
+  { sign: 'Leo', element: 'Fire' },
+  { sign: 'Virgo', element: 'Earth' },
+  { sign: 'Libra', element: 'Air' },
+  { sign: 'Scorpio', element: 'Water' },
+  { sign: 'Sagittarius', element: 'Fire' },
+];
+
+const PLANET_MAP: Planet[] = [
+  'Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'
+];
+
+const YEAR_CONSTRAINTS = {
+  min: 1939,
+  max: 2020
+};
+
+/**
+ * 生成占星数据
+ * @param birthDate 出生日期字符串 (YYYY-MM-DD)
+ * @param gender 性别
+ * @returns 结构化的占星数据
+ */
+function generateDefaultAstroData(birthDate: string): AstroData {
   const date = new Date(birthDate);
+  
+  // 处理无效日期
+  if (isNaN(date.getTime())) {
+    throw new Error('Invalid birth date format. Please use YYYY-MM-DD');
+  }
+
   const year = date.getFullYear();
-  const month = date.getMonth() + 1;
+  const month = date.getMonth() + 1; // 月份从 1 开始
+  const day = date.getDate();
+  const hours = date.getHours();
 
-  const zodiacMap = [
-    { sign: 'Capricorn', element: 'Earth' },
-    { sign: 'Aquarius', element: 'Air' },
-    { sign: 'Pisces', element: 'Water' },
-    { sign: 'Aries', element: 'Fire' },
-    { sign: 'Taurus', element: 'Earth' },
-    { sign: 'Gemini', element: 'Air' },
-    { sign: 'Cancer', element: 'Water' },
-    { sign: 'Leo', element: 'Fire' },
-    { sign: 'Virgo', element: 'Earth' },
-    { sign: 'Libra', element: 'Air' },
-    { sign: 'Scorpio', element: 'Water' },
-    { sign: 'Sagittarius', element: 'Fire' },
-  ];
-
-  const yearZodiac = zodiacMap[year % 12];
-  const monthZodiac = zodiacMap[month - 1];
-  const dayZodiac = zodiacMap[(year + month + date.getDate()) % 12];
-  const hourZodiac = zodiacMap[(date.getHours() + month) % 12];
-
-  const planetMap = [
-    'Sun', 'Moon', 'Mercury', 'Venus', 'Mars', 'Jupiter', 'Saturn', 'Uranus', 'Neptune', 'Pluto'
-  ];
-  const hourPlanet = planetMap[date.getHours() % planetMap.length];
+  // 计算星座索引（确保在 0-11 范围内）
+  const getZodiacIndex = (value: number) => ((value % 12) + 12) % 12;
+  
+  const yearZodiac = ZODIAC_MAP[getZodiacIndex(year)];
+  const monthZodiac = ZODIAC_MAP[getZodiacIndex(month - 1)];
+  const dayZodiac = ZODIAC_MAP[getZodiacIndex(year + month + day)];
+  const hourPlanet = PLANET_MAP[((hours % PLANET_MAP.length) + PLANET_MAP.length) % PLANET_MAP.length];
 
   return {
     year: {
@@ -65,9 +130,13 @@ function generateDefaultAstroData(birthDate: string, gender: string) {
   };
 }
 
-// 辅助函数：生成 elements 数据
-function generateDefaultElements(astroData: any) {
-  const elements = {
+/**
+ * 生成元素分布数据
+ * @param astroData 占星数据
+ * @returns 元素统计结果
+ */
+function generateDefaultElements(astroData: AstroData): Elements {
+  const elements: Elements = {
     Air: 0,
     Fire: 0,
     Water: 0,
@@ -75,70 +144,97 @@ function generateDefaultElements(astroData: any) {
     Total: 0,
   };
 
-  const elementList = [
+  const elementList: Element[] = [
     astroData.year.earthlyBranch,
     astroData.month.earthlyBranch,
     astroData.day.earthlyBranch,
   ];
 
   elementList.forEach(el => {
-    if (el === 'Air') elements.Air++;
-    if (el === 'Fire') elements.Fire++;
-    if (el === 'Water') elements.Water++;
-    if (el === 'Earth') elements.Earth++;
-    elements.Total++;
+    if (elements.hasOwnProperty(el)) {
+      elements[el]++;
+      elements.Total++;
+    }
   });
 
   return elements;
 }
 
-// 新增辅助函数：生成 summary 字段默认值（占星摘要，满足非空约束）
-function generateDefaultSummary(astroData: any, gender: string) {
+/**
+ * 生成占星摘要
+ * @param astroData 占星数据
+ * @param gender 性别
+ * @returns 摘要文本
+ */
+function generateDefaultSummary(astroData: AstroData, gender: string): string {
   const { year, month, day } = astroData;
   return `Based on your birth details (${year.zodiac} year, ${month.heavenlyStem} month, ${day.heavenlyStem} day), you have a balanced mix of ${year.earthlyBranch}, ${month.earthlyBranch}, and ${day.earthlyBranch} elements. Your unique astrological chart reveals insights into your personality, relationships, and life path. Get the full report to unlock detailed analysis.`;
 }
 
 export async function POST(req: NextRequest) {
   try {
-    const { date, time, timezone, gender } = await req.json();
+    // 解析请求体并验证结构
+    let requestBody: RequestBody;
+    try {
+      requestBody = await req.json();
+    } catch (error) {
+      return NextResponse.json(
+        { message: 'Invalid JSON format in request body' },
+        { status: 400 }
+      );
+    }
+
+    const { date, time, timezone, gender } = requestBody;
 
     // 验证必填字段
     if (!date || !time || !gender) {
       return NextResponse.json(
-        { message: 'Missing required fields: date/time/gender' },
+        { message: 'Missing required fields: date, time and gender are required' },
         { status: 400 }
       );
     }
 
-    // 年份限制
-    const selectedYear = new Date(date).getFullYear();
-    const MIN_YEAR = 1939;
-    const MAX_YEAR = 2020;
-    if (selectedYear < MIN_YEAR || selectedYear > MAX_YEAR) {
+    // 验证日期格式
+    const birthDate = new Date(`${date}T${time}`);
+    if (isNaN(birthDate.getTime())) {
       return NextResponse.json(
-        { message: `Birth year must be between ${MIN_YEAR} and ${MAX_YEAR}` },
+        { message: 'Invalid date or time format. Please use YYYY-MM-DD for date and HH:MM for time' },
         { status: 400 }
       );
     }
 
-    // 生成所有非空字段数据
-    const astro_data = generateDefaultAstroData(date, gender);
-    const elements = generateDefaultElements(astro_data);
-    const summary = generateDefaultSummary(astro_data, gender); // 👉 新增：生成 summary
+    // 验证年份范围
+    const birthYear = birthDate.getFullYear();
+    if (birthYear < YEAR_CONSTRAINTS.min || birthYear > YEAR_CONSTRAINTS.max) {
+      return NextResponse.json(
+        { 
+          message: `Birth year must be between ${YEAR_CONSTRAINTS.min} and ${YEAR_CONSTRAINTS.max}`,
+          receivedYear: birthYear
+        },
+        { status: 400 }
+      );
+    }
 
-    // 插入数据（补全所有非空字段）
+    // 生成数据
+    const astroData = generateDefaultAstroData(date);
+    const elements = generateDefaultElements(astroData);
+    const summary = generateDefaultSummary(astroData, gender);
+
+    // 准备插入数据
     const insertData = {
       birth_date: date,
       birth_time: time,
-      timezone: timezone,
-      gender: gender,
+      timezone: timezone || 'UTC', // 提供默认时区
+      gender: gender.trim(), // 去除前后空格
       is_paid: false,
-      astro_data: astro_data,
+      astro_data: astroData,
       elements: elements,
-      summary: summary, // 👉 关键：添加 summary 字段
+      summary: summary,
     };
-    console.log('📥 插入 Supabase 的完整数据：', insertData);
 
+    console.log('📥 Inserting data to Supabase:', insertData);
+
+    // 插入数据库
     const { data, error } = await supabase
       .from('readings')
       .insert([insertData])
@@ -146,28 +242,27 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (error) {
-      console.error('❌ Supabase 插入失败详情：', {
+      console.error('❌ Supabase insertion error:', {
         message: error.message,
         code: error.code,
-        details: error.details,
+        details: error.details
       });
       return NextResponse.json(
         { 
-          message: 'Failed to save your birth information', 
-          error: error.message,
-          details: error.details || 'No additional details'
+          message: 'Failed to save birth information', 
+          error: error.message 
         },
         { status: 500 }
       );
     }
 
-    console.log('✅ 插入成功，返回 ID：', data.id);
-    return NextResponse.json({ id: data.id }, { status: 200 });
+    console.log('✅ Data saved successfully. ID:', data.id);
+    return NextResponse.json({ id: data.id }, { status: 201 }); // 201 表示资源创建成功
 
   } catch (err: any) {
-    console.error('❌ API 全局错误：', err.message, err.stack);
+    console.error('❌ API error:', err.stack);
     return NextResponse.json(
-      { message: 'Internal server error', error: err.message },
+      { message: 'Internal server error', error: process.env.NODE_ENV === 'development' ? err.message : undefined },
       { status: 500 }
     );
   }
