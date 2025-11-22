@@ -32,9 +32,10 @@ export default function BirthForm() {
       // ✅ 额外校验年份（防止用户手动修改输入框绕过限制）
       const selectedYear = new Date(form.date).getFullYear();
       if (selectedYear < MIN_YEAR || selectedYear > MAX_YEAR) {
+        console.error("invalid year");
         throw new Error(`Birth year must be between ${MIN_YEAR} and ${MAX_YEAR}`);
       }
-
+      console.log('Birthform start to await calculate res');
       const res = await fetch('/api/calculate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -43,13 +44,14 @@ export default function BirthForm() {
 
       if (!res.ok) {
         const errData = await res.json().catch(() => ({}));
+        console.error("server error");
         throw new Error(errData.message || `Server error: ${res.status}`);
       }
-
+      console.log('Birthform finish to await calculate res. await res.json');
       const data = await res.json();
-      console.log('API 返回数据：', data);
-
+      console.log('API return data：', data);
       if (data.id && typeof data.id === 'string') {
+        console.error('Birthform line 55 hahaha');
         window.location.href = `/result/${data.id}`;
       } else {
         throw new Error('API 未返回有效的报告 ID');
@@ -61,6 +63,8 @@ export default function BirthForm() {
       setLoading(false);
     }
   };
+
+console.info("ok, get the return info, ready to special offer");
 
   return (
     <div className="w-full">
