@@ -6,20 +6,41 @@ import { getSupabase } from '@/lib/supabase-client';
 
 export default function ResultPage() {
   const params = useParams();
-  const readingId = params.id as string; // 使用 Next.js 路由参数获取 ID，更可靠
+  const readingId = params.id as string;
   const [reading, setReading] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const PRICE_USD = process.env.NEXT_PUBLIC_PRICE_USD || '2.99';
 
+  // 🔥 新增：页面加载时打印日志，跟踪路由参数
+  useEffect(() => {
+    console.log('=== ResultPage 加载开始 ===');
+    console.log('当前 readingId：', readingId);
+    console.log('当前 URL：', window.location.href);
+
+    // 监听页面跳转事件，定位是谁触发的跳转
+    const beforeUnload = (e: BeforeUnloadEvent) => {
+      console.log('⚠️ 页面即将跳转，原因：', e);
+      console.log('跳转前的页面状态：', { loading, error, reading: !!reading });
+    };
+    window.addEventListener('beforeunload', beforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', beforeUnload);
+      console.log('=== ResultPage 卸载 ===');
+    };
+  }, []);
+
   useEffect(() => {
     if (!readingId) {
+      console.log('❌ readingId 为空，跳转到首页');
       window.location.href = '/';
       return;
     }
 
     const fetchReading = async () => {
       try {
+        console.log('🔍 开始请求 Supabase，readingId：', readingId);
         const supabase = getSupabase();
         const { data, error } = await supabase
           .from('readings')
@@ -27,18 +48,34 @@ export default function ResultPage() {
           .eq('id', readingId)
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('❌ Supabase 查询错误：', error);
+          throw error;
+        }
+        console.log('✅ Supabase 请求成功，数据：', data);
         setReading(data);
       } catch (err: any) {
+        console.error('❌ 数据获取失败：', err);
         setError('Failed to load your report');
-        console.error(err);
       } finally {
+        console.log('📌 加载完成，loading 设为 false');
         setLoading(false);
       }
     };
 
     fetchReading();
   }, [readingId]);
+
+  // 🔥 新增：监听 error/reading 状态变化
+  useEffect(() => {
+    console.log('📊 状态变化：', { error, reading: !!reading, loading });
+    if (error) {
+      console.log('❌ 出现错误，不会跳转到 success');
+    }
+    if (reading) {
+      console.log('✅ 获取到 reading 数据，is_paid：', reading.is_paid);
+    }
+  }, [error, reading, loading]);
 
   if (loading) {
     return (
@@ -108,7 +145,6 @@ export default function ResultPage() {
             <h4 className="text-white font-medium mb-2">Five Elements Distribution</h4>
             <div className="flex flex-wrap gap-2">
               {Object.entries(reading.elements || {}).map(([element, count]) => (
-                // 过滤 Total 字段，只显示四大元素
                 element !== 'Total' && (
                   <span key={element} className="px-3 py-1 bg-purple-500/20 text-purple-300 rounded-full text-sm">
                     {element}: {String(count)}
@@ -133,7 +169,6 @@ export default function ResultPage() {
               </p>
             </div>
 
-            {/* 其他报告章节占位 */}
             <div className="bg-white/5 rounded-xl p-6 lg:p-8">
               <h3 className="text-xl font-semibold text-white mb-4">Career Insights</h3>
               <p className="text-gray-300 leading-relaxed">
